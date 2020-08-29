@@ -3,15 +3,24 @@ package com.auth0.jwt.impl;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.Payload;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectReader;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static com.auth0.jwt.impl.JsonNodeClaim.extractClaim;
 
 /**
- * The PayloadImpl class implements the Payload interface.
+ * Decoder of string JSON Web Tokens into their POJO representations.
+ *
+ * @see Payload
+ * <p>
+ * This class is thread-safe.
  */
-class PayloadImpl implements Payload {
+class PayloadImpl implements Payload, Serializable {
+
+    private static final long serialVersionUID = 1659021498824562311L;
+
     private final String issuer;
     private final String subject;
     private final List<String> audience;
@@ -20,16 +29,18 @@ class PayloadImpl implements Payload {
     private final Date issuedAt;
     private final String jwtId;
     private final Map<String, JsonNode> tree;
+    private final ObjectReader objectReader;
 
-    PayloadImpl(String issuer, String subject, List<String> audience, Date expiresAt, Date notBefore, Date issuedAt, String jwtId, Map<String, JsonNode> tree) {
+    PayloadImpl(String issuer, String subject, List<String> audience, Date expiresAt, Date notBefore, Date issuedAt, String jwtId, Map<String, JsonNode> tree, ObjectReader objectReader) {
         this.issuer = issuer;
         this.subject = subject;
-        this.audience = audience;
+        this.audience = audience != null ? Collections.unmodifiableList(audience) : null;
         this.expiresAt = expiresAt;
         this.notBefore = notBefore;
         this.issuedAt = issuedAt;
         this.jwtId = jwtId;
-        this.tree = Collections.unmodifiableMap(tree == null ? new HashMap<String, JsonNode>() : tree);
+        this.tree = tree != null ? Collections.unmodifiableMap(tree) : Collections.<String, JsonNode>emptyMap();
+        this.objectReader = objectReader;
     }
 
     Map<String, JsonNode> getTree() {
@@ -73,14 +84,14 @@ class PayloadImpl implements Payload {
 
     @Override
     public Claim getClaim(String name) {
-        return extractClaim(name, tree);
+        return extractClaim(name, tree, objectReader);
     }
 
     @Override
     public Map<String, Claim> getClaims() {
-        Map<String, Claim> claims = new HashMap<>();
+        Map<String, Claim> claims = new HashMap<>(tree.size() * 2);
         for (String name : tree.keySet()) {
-            claims.put(name, extractClaim(name, tree));
+            claims.put(name, extractClaim(name, tree, objectReader));
         }
         return Collections.unmodifiableMap(claims);
     }

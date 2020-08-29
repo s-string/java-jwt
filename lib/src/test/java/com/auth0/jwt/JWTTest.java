@@ -46,6 +46,15 @@ public class JWTTest {
         assertThat(jwt, is(notNullValue()));
     }
 
+    @Test
+    public void shouldDecodeAStringTokenUsingInstance() throws Exception {
+        String token = "eyJhbGciOiJIUzI1NiIsImN0eSI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCJ9.mZ0m_N1J4PgeqWmi903JuUoDRZDBPB7HwkS4nVyWH1M";
+        JWT jwt = new JWT();
+        DecodedJWT decodedJWT = jwt.decodeJwt(token);
+
+        assertThat(decodedJWT, is(notNullValue()));
+    }
+
     // getToken
     @Test
     public void shouldGetStringToken() throws Exception {
@@ -55,8 +64,29 @@ public class JWTTest {
         assertThat(jwt.getToken(), is("eyJhbGciOiJIUzI1NiJ9.e30.XmNK3GpH3Ys_7wsYBfq4C3M6goz71I7dTgUkuIa5lyQ"));
     }
 
+    // getToken
+    @Test
+    public void shouldGetStringTokenUsingInstance() throws Exception {
+        JWT jwt = new JWT();
+        DecodedJWT decodedJWT = jwt.decodeJwt("eyJhbGciOiJIUzI1NiJ9.e30.XmNK3GpH3Ys_7wsYBfq4C3M6goz71I7dTgUkuIa5lyQ");
+        assertThat(decodedJWT, is(notNullValue()));
+        assertThat(decodedJWT.getToken(), is(notNullValue()));
+        assertThat(decodedJWT.getToken(), is("eyJhbGciOiJIUzI1NiJ9.e30.XmNK3GpH3Ys_7wsYBfq4C3M6goz71I7dTgUkuIa5lyQ"));
+    }
 
     // Verify
+
+    @Test
+    public void shouldVerifyDecodedToken() throws Exception {
+        String token = "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCJ9.mvL5LoMyIrWYjk5umEXZTmbyIrkbbcVPUkvdGZbu0qFBxGOf0nXP5PZBvPcOu084lvpwVox5n3VaD4iqzW-PsJyvKFgi5TnwmsbKchAp7JexQEsQOnTSGcfRqeUUiBZqRQdYsho71oAB3T4FnalDdFEpM-fztcZY9XqKyayqZLreTeBjqJm4jfOWH7KfGBHgZExQhe96NLq1UA9eUyQwdOA1Z0SgXe4Ja5PxZ6Fm37KnVDtDlNnY4JAAGFo6y74aGNnp_BKgpaVJCGFu1f1S5xCQ1HSvs8ZSdVWs5NgawW3wRd0kRt_GJ_Y3mIwiF4qUyHWGtsSHu_qjVdCTtbFyow";
+        DecodedJWT decodedJWT = JWT.decode(token);
+        RSAKey key = (RSAKey) PemUtils.readPublicKeyFromFile(PUBLIC_KEY_FILE_RSA, "RSA");
+        DecodedJWT jwt = JWT.require(Algorithm.RSA512(key))
+            .build()
+            .verify(decodedJWT);
+
+        assertThat(jwt, is(notNullValue()));
+    }
 
     @Test
     public void shouldAcceptNoneAlgorithm() throws Exception {

@@ -9,23 +9,31 @@ import com.auth0.jwt.interfaces.Payload;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 /**
  * The JWTDecoder class holds the decode method to parse a given JWT token into it's JWT representation.
+ * <p>
+ * This class is thread-safe.
  */
 @SuppressWarnings("WeakerAccess")
-final class JWTDecoder implements DecodedJWT {
+final class JWTDecoder implements DecodedJWT, Serializable {
+
+    private static final long serialVersionUID = 1873362438023312895L;
 
     private final String[] parts;
     private final Header header;
     private final Payload payload;
 
     JWTDecoder(String jwt) throws JWTDecodeException {
+        this(new JWTParser(), jwt);
+    }
+
+    JWTDecoder(JWTParser converter, String jwt) throws JWTDecodeException {
         parts = TokenUtils.splitToken(jwt);
-        final JWTParser converter = new JWTParser();
         String headerJson;
         String payloadJson;
         try {
@@ -33,6 +41,8 @@ final class JWTDecoder implements DecodedJWT {
             payloadJson = StringUtils.newStringUtf8(Base64.decodeBase64(parts[1]));
         } catch (NullPointerException e) {
             throw new JWTDecodeException("The UTF-8 Charset isn't initialized.", e);
+        } catch (IllegalArgumentException e){
+            throw new JWTDecodeException("The input is not a valid base 64 encoded string.", e);
         }
         header = converter.parseHeader(headerJson);
         payload = converter.parsePayload(payloadJson);

@@ -1,2 +1,2 @@
-include ':java-jwt'
-project(':java-jwt').projectDir = new File(rootProject.projectDir, '/lib')
+include ':java-jwt-jsr318-jdk8'
+project(':java-jwt-jsr318-jdk8').projectDir = new File(rootProject.projectDir, '/lib')

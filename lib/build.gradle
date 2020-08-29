@@ -1,58 +1,72 @@
-apply plugin: 'jacoco'
-apply plugin: 'java'
-apply from: '../scripts/release.gradle'
-apply from: '../scripts/maven.gradle'
-apply from: '../scripts/bintray.gradle'
+buildscript {
+    ext {
+         awsAccessKeyId = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+         awsSecretAccessKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+    }
+} 
 
-logger.lifecycle("Using version ${version} for ${group}.${name}")
-
-auth0 {
-    name "java jwt"
-    repo "java-jwt"
-    description "Java implementation of JSON Web Token (JWT)"
-    url  'http://www.jwt.io'
-    developer {
-        id = "auth0"
-        name = "Auth0"
-        email = "oss@auth0.com"
-    }
-    developer {
-        id = "lbalmaceda"
-        name = "Luciano Balmaceda"
-        email = "luciano.balmaceda@auth0.com"
-    }
-    developer {
-        id = "hzalaz"
-        name = "Hernan Zalazar"
-        email = "hernan@auth0.com"
-    }
+plugins {
+//    id "com.jfrog.bintray" version "1.8.4"
+//    id "com.auth0.gradle.oss-library.java" version "0.11.0"
+//    id "jacoco"
+    id "maven-publish"
+    id "java"
 }
 
+version = '3.10.3'
+
+
+logger.lifecycle("Using version ${version} for ${group}.${name}")
+/*
+oss {
+    name "java jwt"
+    repository "java-jwt"
+    organization "auth0"
+    description "Java implementation of JSON Web Token (JWT)"
+
+    developers {
+        auth0 {
+            displayName = "Auth0"
+            email = "oss@auth0.com"
+        }
+        lbalmaceda {
+            displayName = "Luciano Balmaceda"
+            email = "luciano.balmaceda@auth0.com"
+        }
+        hzalaz {
+            displayName = "Hernan Zalazar"
+            email = "hernan@auth0.com"
+        }
+    }
+}
+*/
 compileJava {
-    sourceCompatibility '1.7'
-    targetCompatibility '1.7'
+    sourceCompatibility '11'
+    targetCompatibility '11'
 }
 
 dependencies {
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.6'
-    compile 'commons-codec:commons-codec:1.11'
-    compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.9.6'
-    compile 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.9.6'
-    compile 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.9.6'
-    testCompile 'org.bouncycastle:bcprov-jdk15on:1.59'
-    testCompile 'junit:junit:4.12'
-    testCompile 'net.jodah:concurrentunit:0.4.3'
-    testCompile 'org.hamcrest:java-hamcrest:2.0.0.0'
-    testCompile 'org.mockito:mockito-core:2.18.3'
+    implementation 'commons-codec:commons-codec:1.14'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate3:2.11.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.11.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.11.2'
+    implementation 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.11.2'
+    testImplementation 'org.bouncycastle:bcprov-jdk15on:1.60'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'net.jodah:concurrentunit:0.4.3'
+    testImplementation 'org.hamcrest:java-hamcrest:2.0.0.0'
+    testImplementation 'org.mockito:mockito-core:2.18.3'
+    testImplementation 'org.hibernate:hibernate-core:3.6.10.Final'
 }
-
+/*
 jacocoTestReport {
     reports {
         xml.enabled = true
         html.enabled = true
     }
 }
-
+*/
 test {
     testLogging {
         events "skipped", "failed", "standardError"
@@ -60,7 +74,28 @@ test {
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
-    delete 'CHANGELOG.md.release'
+repositories {
+    mavenCentral()
+    repositories {
+        maven {
+            url = 'https://s3-ap-northeast-1.amazonaws.com/maven-repo.s-string.com/release'
+        }
+    }
+}
+
+publishing {
+    publications {
+            maven(MavenPublication) {
+                from components.java    
+            }
+    }
+    repositories {
+        maven {
+            url = 's3://maven-repo.s-string.com/release'
+            credentials(AwsCredentials) {
+                accessKey = awsAccessKeyId
+                secretKey = awsSecretAccessKey
+            }
+        }
+    }
 }

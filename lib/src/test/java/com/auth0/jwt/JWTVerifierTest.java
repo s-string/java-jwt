@@ -10,14 +10,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class JWTVerifierTest {
 
@@ -52,12 +53,36 @@ public class JWTVerifierTest {
     }
 
     @Test
+    public void shouldValidateMultipleIssuers() {
+        String auth0Token = "eyJhbGciOiJIUzI1NiIsImN0eSI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCJ9.mZ0m_N1J4PgeqWmi903JuUoDRZDBPB7HwkS4nVyWH1M";
+        String otherIssuertoken = "eyJhbGciOiJIUzI1NiIsImN0eSI6IkpXVCJ9.eyJpc3MiOiJvdGhlcklzc3VlciJ9.k4BCOJJl-c0_Y-49VD_mtt-u0QABKSV5i3W-RKc74co";
+        JWTVerifier verifier = JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withIssuer("otherIssuer", "auth0")
+                .build();
+
+        assertThat(verifier.verify(auth0Token), is(notNullValue()));
+        assertThat(verifier.verify(otherIssuertoken), is(notNullValue()));
+    }
+
+    @Test
     public void shouldThrowOnInvalidIssuer() throws Exception {
         exception.expect(InvalidClaimException.class);
-        exception.expectMessage("The Claim 'iss' value doesn't match the required one.");
+        exception.expectMessage("The Claim 'iss' value doesn't match the required issuer.");
         String token = "eyJhbGciOiJIUzI1NiIsImN0eSI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCJ9.mZ0m_N1J4PgeqWmi903JuUoDRZDBPB7HwkS4nVyWH1M";
         JWTVerifier.init(Algorithm.HMAC256("secret"))
                 .withIssuer("invalid")
+                .build()
+                .verify(token);
+    }
+
+    @Test
+    public void shouldThrowOnNullIssuer() throws Exception {
+        exception.expect(InvalidClaimException.class);
+        exception.expectMessage("The Claim 'iss' value doesn't match the required issuer.");
+
+        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.t-IDcSemACt8x4iTMCda8Yhe3iZaWbvV5XKSTbuAn0M";
+        JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withIssuer("auth0")
                 .build()
                 .verify(token);
     }
@@ -127,11 +152,86 @@ public class JWTVerifierTest {
     }
 
     @Test
+    public void shouldRemoveAudienceWhenPassingNullReference() throws Exception {
+        Algorithm algorithm = mock(Algorithm.class);
+        JWTVerifier verifier = JWTVerifier.init(algorithm)
+                .withAudience((String) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("aud")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withAudience((String[]) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("aud")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withAudience()
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("aud")));
+
+        String emptyAud = "   ";
+        verifier = JWTVerifier.init(algorithm)
+                .withAudience(emptyAud)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, hasEntry("aud", Collections.singletonList(emptyAud)));
+    }
+
+    @Test
+    public void shouldRemoveAudienceWhenPassingNull() throws Exception {
+        Algorithm algorithm = mock(Algorithm.class);
+        JWTVerifier verifier = JWTVerifier.init(algorithm)
+                .withAudience("John")
+                .withAudience((String) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("aud")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withAudience("John")
+                .withAudience((String[]) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("aud")));
+    }
+
+    @Test
     public void shouldThrowOnNullCustomClaimName() throws Exception {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("The Custom Claim's name can't be null.");
         JWTVerifier.init(Algorithm.HMAC256("secret"))
                 .withClaim(null, "value");
+    }
+
+    @Test
+    public void shouldThrowWhenExpectedArrayClaimIsMissing() throws Exception {
+        exception.expect(InvalidClaimException.class);
+        exception.expectMessage("The Claim 'missing' value doesn't match the required one.");
+        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcnJheSI6WzEsMiwzXX0.wKNFBcMdwIpdF9rXRxvexrzSM6umgSFqRO1WZj992YM";
+        JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withArrayClaim("missing", 1, 2, 3)
+                .build()
+                .verify(token);
+    }
+
+    @Test
+    public void shouldThrowWhenExpectedClaimIsMissing() throws Exception {
+        exception.expect(InvalidClaimException.class);
+        exception.expectMessage("The Claim 'missing' value doesn't match the required one.");
+        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGFpbSI6InRleHQifQ.aZ27Ze35VvTqxpaSIK5ZcnYHr4SrvANlUbDR8fw9qsQ";
+        JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withClaim("missing", "text")
+                .build()
+                .verify(token);
     }
 
     @Test
@@ -290,6 +390,39 @@ public class JWTVerifierTest {
         assertThat(jwt, is(notNullValue()));
     }
 
+    @Test
+    public void shouldValidateCustomArrayClaimOfTypeLong() throws Exception {
+        String token = "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjpbNTAwMDAwMDAwMDAxLDUwMDAwMDAwMDAwMiw1MDAwMDAwMDAwMDNdfQ.vzV7S0gbV9ZAVxChuIt4XZuSVTxMH536rFmoHzxmayM";
+        DecodedJWT jwt = JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withArrayClaim("name", 500000000001L, 500000000002L, 500000000003L)
+                .build()
+                .verify(token);
+
+        assertThat(jwt, is(notNullValue()));
+    }
+
+    @Test
+    public void shouldValidateCustomArrayClaimOfTypeLongWhenValueIsInteger() throws Exception {
+        String token = "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjpbMSwyLDNdfQ.UEuMKRQYrzKAiPpPLhIVawWkKWA1zj0_GderrWUIyFE";
+        DecodedJWT jwt = JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withArrayClaim("name", 1L, 2L, 3L)
+                .build()
+                .verify(token);
+
+        assertThat(jwt, is(notNullValue()));
+    }
+
+    @Test
+    public void shouldValidateCustomArrayClaimOfTypeLongWhenValueIsIntegerAndLong() throws Exception {
+        String token = "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjpbMSw1MDAwMDAwMDAwMDIsNTAwMDAwMDAwMDAzXX0.PQjb2rPPpYjM2sItZEzZcjS2YbfPCp6xksTSPjpjTQA";
+        DecodedJWT jwt = JWTVerifier.init(Algorithm.HMAC256("secret"))
+                .withArrayClaim("name", 1L, 500000000002L, 500000000003L)
+                .build()
+                .verify(token);
+
+        assertThat(jwt, is(notNullValue()));
+    }
+
     // Generic Delta
     @SuppressWarnings("RedundantCast")
     @Test
@@ -370,6 +503,23 @@ public class JWTVerifierTest {
         Algorithm algorithm = mock(Algorithm.class);
         JWTVerifier.init(algorithm)
                 .acceptLeeway(-1);
+    }
+
+    @Test
+    public void shouldNotModifyOriginalClockDateWhenVerifying() throws Exception {
+        Clock clock = mock(Clock.class);
+        Date clockDate = spy(new Date(DATE_TOKEN_MS_VALUE));
+        when(clock.getToday()).thenReturn(clockDate);
+
+        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0Nzc1OTJ9.isvT0Pqx0yjnZk53mUFSeYFJLDs-Ls9IsNAm86gIdZo";
+        JWTVerifier.BaseVerification verification = (JWTVerifier.BaseVerification) JWTVerifier.init(Algorithm.HMAC256("secret"));
+        JWTVerifier verifier = verification
+                .build(clock);
+
+        DecodedJWT jwt = verifier.verify(token);
+        assertThat(jwt, is(notNullValue()));
+
+        verify(clockDate, never()).setTime(anyLong());
     }
 
     // Expires At
@@ -478,19 +628,30 @@ public class JWTVerifierTest {
                 .acceptNotBefore(-1);
     }
 
-    // Issued At
-    @Test
-    public void shouldValidateIssuedAtWithLeeway() throws Exception {
+    // Issued At with future date
+    @Test(expected = InvalidClaimException.class)
+    public void shouldThrowOnFutureIssuedAt() throws Exception {
         Clock clock = mock(Clock.class);
         when(clock.getToday()).thenReturn(new Date(DATE_TOKEN_MS_VALUE - 1000));
 
-        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE0Nzc1OTJ9.0WJky9eLN7kuxLyZlmbcXRL3Wy8hLoNCEk5CCl2M4lo";
-        JWTVerifier.BaseVerification verification = (JWTVerifier.BaseVerification) JWTVerifier.init(Algorithm.HMAC256("secret"))
-                .acceptIssuedAt(2);
-        DecodedJWT jwt = verification
-                .build(clock)
-                .verify(token);
+        String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE0Nzc1OTJ9.CWq-6pUXl1bFg81vqOUZbZrheO2kUBd2Xr3FUZmvudE";
+        JWTVerifier.BaseVerification verification = (JWTVerifier.BaseVerification) JWTVerifier.init(Algorithm.HMAC256("secret"));
 
+        DecodedJWT jwt = verification.build(clock).verify(token);
+        assertThat(jwt, is(notNullValue()));
+    }
+
+    // Issued At with future date and ignore flag
+    @Test
+    public void shouldSkipIssuedAtVerificationWhenFlagIsPassed() throws Exception {
+        Clock clock = mock(Clock.class);
+        when(clock.getToday()).thenReturn(new Date(DATE_TOKEN_MS_VALUE - 1000));
+
+        String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE0Nzc1OTJ9.CWq-6pUXl1bFg81vqOUZbZrheO2kUBd2Xr3FUZmvudE";
+        JWTVerifier.BaseVerification verification = (JWTVerifier.BaseVerification) JWTVerifier.init(Algorithm.HMAC256("secret"));
+        verification.ignoreIssuedAt();
+
+        DecodedJWT jwt = verification.build(clock).verify(token);
         assertThat(jwt, is(notNullValue()));
     }
 
@@ -506,6 +667,20 @@ public class JWTVerifierTest {
         verification
                 .build(clock)
                 .verify(token);
+    }
+
+    @Test
+    public void shouldOverrideAcceptIssuedAtWhenIgnoreIssuedAtFlagPassedAndSkipTheVerification() throws Exception {
+        Clock clock = mock(Clock.class);
+        when(clock.getToday()).thenReturn(new Date(DATE_TOKEN_MS_VALUE - 1000));
+
+        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE0Nzc1OTJ9.0WJky9eLN7kuxLyZlmbcXRL3Wy8hLoNCEk5CCl2M4lo";
+        JWTVerifier.BaseVerification verification = (JWTVerifier.BaseVerification) JWTVerifier.init(Algorithm.HMAC256("secret"));
+        DecodedJWT jwt = verification.acceptIssuedAt(20).ignoreIssuedAt()
+                .build()
+                .verify(token);
+
+        assertThat(jwt, is(notNullValue()));
     }
 
     @Test
@@ -558,11 +733,52 @@ public class JWTVerifierTest {
         Algorithm algorithm = mock(Algorithm.class);
         JWTVerifier verifier = JWTVerifier.init(algorithm)
                 .withIssuer("iss")
-                .withIssuer(null)
+                .withIssuer((String) null)
                 .build();
 
         assertThat(verifier.claims, is(notNullValue()));
         assertThat(verifier.claims, not(hasKey("iss")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withIssuer("iss")
+                .withIssuer((String[]) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("iss")));
+    }
+
+    @Test
+    public void shouldRemoveIssuerWhenPassingNullReference() throws Exception {
+        Algorithm algorithm = mock(Algorithm.class);
+        JWTVerifier verifier = JWTVerifier.init(algorithm)
+                .withIssuer((String) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("iss")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withIssuer((String[]) null)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("iss")));
+
+        verifier = JWTVerifier.init(algorithm)
+                .withIssuer()
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, not(hasKey("iss")));
+
+        String emptyIss = "  ";
+        verifier = JWTVerifier.init(algorithm)
+                .withIssuer(emptyIss)
+                .build();
+
+        assertThat(verifier.claims, is(notNullValue()));
+        assertThat(verifier.claims, hasEntry("iss", Collections.singletonList(emptyIss)));
     }
 
     @Test

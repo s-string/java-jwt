@@ -2,6 +2,7 @@ package com.auth0.jwt;
 
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.*;
+import com.auth0.jwt.impl.JWTParser;
 import com.auth0.jwt.impl.PublicClaims;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.Clock;
@@ -12,17 +13,21 @@ import java.util.*;
 
 /**
  * The JWTVerifier class holds the verify method to assert that a given Token has not only a proper JWT format, but also it's signature matches.
+ * <p>
+ * This class is thread-safe.
  */
 @SuppressWarnings("WeakerAccess")
-public final class JWTVerifier {
+public final class JWTVerifier implements com.auth0.jwt.interfaces.JWTVerifier {
     private final Algorithm algorithm;
     final Map<String, Object> claims;
     private final Clock clock;
+    private final JWTParser parser;
 
     JWTVerifier(Algorithm algorithm, Map<String, Object> claims, Clock clock) {
         this.algorithm = algorithm;
         this.claims = Collections.unmodifiableMap(claims);
         this.clock = clock;
+        this.parser = new JWTParser();
     }
 
     /**
@@ -36,13 +41,11 @@ public final class JWTVerifier {
         return new BaseVerification(algorithm);
     }
 
-    /**
-     * The Verification class holds the Claims required by a JWT to be valid.
-     */
     public static class BaseVerification implements Verification {
         private final Algorithm algorithm;
         private final Map<String, Object> claims;
         private long defaultLeeway;
+        private boolean ignoreIssuedAt;
 
         BaseVerification(Algorithm algorithm) throws IllegalArgumentException {
             if (algorithm == null) {
@@ -54,50 +57,24 @@ public final class JWTVerifier {
             this.defaultLeeway = 0;
         }
 
-        /**
-         * Require a specific Issuer ("iss") claim.
-         *
-         * @param issuer the required Issuer value
-         * @return this same Verification instance.
-         */
         @Override
-        public Verification withIssuer(String issuer) {
-            requireClaim(PublicClaims.ISSUER, issuer);
+        public Verification withIssuer(String... issuer) {
+            requireClaim(PublicClaims.ISSUER, isNullOrEmpty(issuer) ? null : Arrays.asList(issuer));
             return this;
         }
 
-        /**
-         * Require a specific Subject ("sub") claim.
-         *
-         * @param subject the required Subject value
-         * @return this same Verification instance.
-         */
         @Override
         public Verification withSubject(String subject) {
             requireClaim(PublicClaims.SUBJECT, subject);
             return this;
         }
 
-        /**
-         * Require a specific Audience ("aud") claim.
-         *
-         * @param audience the required Audience value
-         * @return this same Verification instance.
-         */
         @Override
         public Verification withAudience(String... audience) {
-            requireClaim(PublicClaims.AUDIENCE, Arrays.asList(audience));
+            requireClaim(PublicClaims.AUDIENCE, isNullOrEmpty(audience) ? null : Arrays.asList(audience));
             return this;
         }
 
-        /**
-         * Define the default window in seconds in which the Not Before, Issued At and Expires At Claims will still be valid.
-         * Setting a specific leeway value on a given Claim will override this value for that Claim.
-         *
-         * @param leeway the window in seconds in which the Not Before, Issued At and Expires At Claims will still be valid.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if leeway is negative.
-         */
         @Override
         public Verification acceptLeeway(long leeway) throws IllegalArgumentException {
             assertPositive(leeway);
@@ -105,14 +82,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Set a specific leeway window in seconds in which the Expires At ("exp") Claim will still be valid.
-         * Expiration Date is always verified when the value is present. This method overrides the value set with acceptLeeway
-         *
-         * @param leeway the window in seconds in which the Expires At Claim will still be valid.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if leeway is negative.
-         */
         @Override
         public Verification acceptExpiresAt(long leeway) throws IllegalArgumentException {
             assertPositive(leeway);
@@ -120,14 +89,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Set a specific leeway window in seconds in which the Not Before ("nbf") Claim will still be valid.
-         * Not Before Date is always verified when the value is present. This method overrides the value set with acceptLeeway
-         *
-         * @param leeway the window in seconds in which the Not Before Claim will still be valid.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if leeway is negative.
-         */
         @Override
         public Verification acceptNotBefore(long leeway) throws IllegalArgumentException {
             assertPositive(leeway);
@@ -135,14 +96,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Set a specific leeway window in seconds in which the Issued At ("iat") Claim will still be valid.
-         * Issued At Date is always verified when the value is present. This method overrides the value set with acceptLeeway
-         *
-         * @param leeway the window in seconds in which the Issued At Claim will still be valid.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if leeway is negative.
-         */
         @Override
         public Verification acceptIssuedAt(long leeway) throws IllegalArgumentException {
             assertPositive(leeway);
@@ -150,26 +103,18 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific JWT Id ("jti") claim.
-         *
-         * @param jwtId the required Id value
-         * @return this same Verification instance.
-         */
+        @Override
+        public Verification ignoreIssuedAt() {
+            this.ignoreIssuedAt = true;
+            return this;
+        }
+
         @Override
         public Verification withJWTId(String jwtId) {
             requireClaim(PublicClaims.JWT_ID, jwtId);
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, Boolean value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -177,14 +122,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, Integer value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -192,14 +129,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, Long value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -207,14 +136,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, Double value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -222,14 +143,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, String value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -237,14 +150,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Claim value.
-         *
-         * @param name  the Claim's name.
-         * @param value the Claim's value.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withClaim(String name, Date value) throws IllegalArgumentException {
             assertNonNull(name);
@@ -252,14 +157,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Array Claim to contain at least the given items.
-         *
-         * @param name  the Claim's name.
-         * @param items the items the Claim must contain.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withArrayClaim(String name, String... items) throws IllegalArgumentException {
             assertNonNull(name);
@@ -267,14 +164,6 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Require a specific Array Claim to contain at least the given items.
-         *
-         * @param name  the Claim's name.
-         * @param items the items the Claim must contain.
-         * @return this same Verification instance.
-         * @throws IllegalArgumentException if the name is null.
-         */
         @Override
         public Verification withArrayClaim(String name, Integer... items) throws IllegalArgumentException {
             assertNonNull(name);
@@ -282,11 +171,13 @@ public final class JWTVerifier {
             return this;
         }
 
-        /**
-         * Creates a new and reusable instance of the JWTVerifier with the configuration already provided.
-         *
-         * @return a new JWTVerifier instance.
-         */
+        @Override
+        public Verification withArrayClaim(String name, Long... items) throws IllegalArgumentException {
+            assertNonNull(name);
+            requireClaim(name, items);
+            return this;
+        }
+
         @Override
         public JWTVerifier build() {
             return this.build(new ClockImpl());
@@ -323,6 +214,10 @@ public final class JWTVerifier {
             if (!claims.containsKey(PublicClaims.NOT_BEFORE)) {
                 claims.put(PublicClaims.NOT_BEFORE, defaultLeeway);
             }
+            if (ignoreIssuedAt) {
+                claims.remove(PublicClaims.ISSUED_AT);
+                return;
+            }
             if (!claims.containsKey(PublicClaims.ISSUED_AT)) {
                 claims.put(PublicClaims.ISSUED_AT, defaultLeeway);
             }
@@ -337,6 +232,20 @@ public final class JWTVerifier {
         }
     }
 
+    private static boolean isNullOrEmpty(String[] args) {
+        if (args == null || args.length == 0) {
+            return true;
+        }
+        boolean isAllNull = true;
+        for (String arg : args) {
+            if (arg != null) {
+                isAllNull = false;
+                break;
+            }
+        }
+        return isAllNull;
+    }
+
 
     /**
      * Perform the verification against the given Token, using any previous configured options.
@@ -348,8 +257,24 @@ public final class JWTVerifier {
      * @throws TokenExpiredException          if the token has expired.
      * @throws InvalidClaimException          if a claim contained a different value than the expected one.
      */
+    @Override
     public DecodedJWT verify(String token) throws JWTVerificationException {
-        DecodedJWT jwt = JWT.decode(token);
+        DecodedJWT jwt = new JWTDecoder(parser, token);
+        return verify(jwt);
+    }
+
+    /**
+     * Perform the verification against the given decoded JWT, using any previous configured options.
+     *
+     * @param jwt to verify.
+     * @return a verified and decoded JWT.
+     * @throws AlgorithmMismatchException     if the algorithm stated in the token's header it's not equal to the one defined in the {@link JWTVerifier}.
+     * @throws SignatureVerificationException if the signature is invalid.
+     * @throws TokenExpiredException          if the token has expired.
+     * @throws InvalidClaimException          if a claim contained a different value than the expected one.
+     */
+    @Override
+    public DecodedJWT verify(DecodedJWT jwt) throws JWTVerificationException {
         verifyAlgorithm(jwt, algorithm);
         algorithm.verify(jwt);
         verifyClaims(jwt, claims);
@@ -366,7 +291,6 @@ public final class JWTVerifier {
         for (Map.Entry<String, Object> entry : claims.entrySet()) {
             switch (entry.getKey()) {
                 case PublicClaims.AUDIENCE:
-                    //noinspection unchecked
                     assertValidAudienceClaim(jwt.getAudience(), (List<String>) entry.getValue());
                     break;
                 case PublicClaims.EXPIRES_AT:
@@ -379,7 +303,7 @@ public final class JWTVerifier {
                     assertValidDateClaim(jwt.getNotBefore(), (Long) entry.getValue(), false);
                     break;
                 case PublicClaims.ISSUER:
-                    assertValidStringClaim(entry.getKey(), jwt.getIssuer(), (String) entry.getValue());
+                    assertValidIssuerClaim(jwt.getIssuer(), (List<String>) entry.getValue());
                     break;
                 case PublicClaims.JWT_ID:
                     assertValidStringClaim(entry.getKey(), jwt.getId(), (String) entry.getValue());
@@ -409,7 +333,23 @@ public final class JWTVerifier {
         } else if (value instanceof Date) {
             isValid = value.equals(claim.asDate());
         } else if (value instanceof Object[]) {
-            List<Object> claimArr = Arrays.asList(claim.as(Object[].class));
+            List<Object> claimArr;
+            Object[] claimAsObject = claim.as(Object[].class);
+
+            // Jackson uses 'natural' mapping which uses Integer if value fits in 32 bits.
+            if (value instanceof Long[]) {
+                // convert Integers to Longs for comparison with equals
+                claimArr = new ArrayList<>(claimAsObject.length);
+                for (Object cao : claimAsObject) {
+                    if (cao instanceof Integer) {
+                        claimArr.add(((Integer) cao).longValue());
+                    } else {
+                        claimArr.add(cao);
+                    }
+                }
+            } else {
+                claimArr = claim.isNull() ? Collections.emptyList() : Arrays.asList(claim.as(Object[].class));
+            }
             List<Object> valueArr = Arrays.asList((Object[]) value);
             isValid = claimArr.containsAll(valueArr);
         }
@@ -426,8 +366,8 @@ public final class JWTVerifier {
     }
 
     private void assertValidDateClaim(Date date, long leeway, boolean shouldBeFuture) {
-        Date today = clock.getToday();
-        today.setTime((long) Math.floor((today.getTime() / 1000) * 1000)); // truncate millis
+        Date today = new Date(clock.getToday().getTime());
+        today.setTime(today.getTime() / 1000 * 1000); // truncate millis
         if (shouldBeFuture) {
             assertDateIsFuture(date, leeway, today);
         } else {
@@ -452,6 +392,12 @@ public final class JWTVerifier {
     private void assertValidAudienceClaim(List<String> audience, List<String> value) {
         if (audience == null || !audience.containsAll(value)) {
             throw new InvalidClaimException("The Claim 'aud' value doesn't contain the required audience.");
+        }
+    }
+
+    private void assertValidIssuerClaim(String issuer, List<String> value) {
+        if (issuer == null || !value.contains(issuer)) {
+            throw new InvalidClaimException("The Claim 'iss' value doesn't match the required issuer.");
         }
     }
 }

@@ -3,8 +3,9 @@
 # Java JWT
 
 [![CircleCI](https://img.shields.io/circleci/project/github/auth0/java-jwt.svg?style=flat-square)](https://circleci.com/gh/auth0/java-jwt/tree/master)
-[![Coverage Status](https://img.shields.io/codecov/c/github/auth0/java-jwt/v3.svg?style=flat-square)](https://codecov.io/github/auth0/java-jwt)
+[![Coverage Status](https://img.shields.io/codecov/c/github/auth0/java-jwt.svg?style=flat-square)](https://codecov.io/github/auth0/java-jwt)
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat)](http://doge.mit-license.org)
+[![Javadoc](https://javadoc.io/badge2/com.auth0/java-jwt/javadoc.svg)](https://javadoc.io/doc/com.auth0/java-jwt/latest/index.html)
 
 A Java implementation of [JSON Web Token (JWT) - RFC 7519](https://tools.ietf.org/html/rfc7519).
 
@@ -12,20 +13,22 @@ If you're looking for an **Android** version of the JWT Decoder take a look at o
 
 ## Installation
 
+The library is available on both Maven Central and Bintray, and the Javadoc is published [here](https://javadoc.io/doc/com.auth0/java-jwt/latest/index.html).
+ 
 ### Maven
 
 ```xml
 <dependency>
     <groupId>com.auth0</groupId>
     <artifactId>java-jwt</artifactId>
-    <version>3.4.0</version>
+    <version>3.10.3</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-compile 'com.auth0:java-jwt:3.4.0'
+implementation 'com.auth0:java-jwt:3.10.3'
 ```
 
 ## Available Algorithms
@@ -65,6 +68,8 @@ RSAPrivateKey privateKey = //Get the key instance
 Algorithm algorithmRS = Algorithm.RSA256(publicKey, privateKey);
 ```
 
+> Note: How you obtain or read keys is not in the scope of this library. For an example of how you might implement this, see [this gist](https://gist.github.com/lbalmaceda/9a0c7890c2965826c04119dcfb1a5469).
+
 #### Using a KeyProvider:
 
 By using a `KeyProvider` you can change in runtime the key used either to verify the token signature or to sign a new token for RSA or ECDSA algorithms. This is achieved by implementing either `RSAKeyProvider` or `ECDSAKeyProvider` methods:
@@ -74,8 +79,7 @@ By using a `KeyProvider` you can change in runtime the key used either to verify
 - `getPrivateKeyId()`: Its called during token signing and it should return the id of the key that identifies the one returned by `getPrivateKey()`. This value is preferred over the one set in the `JWTCreator.Builder#withKeyId(String)` method. If you don't need to set a `kid` value avoid instantiating an Algorithm using a `KeyProvider`.
 
 
-The following snippet uses example classes showing how this would work:
-
+The following example shows how this would work with `JwkStore`, an imaginary [JWK Set](https://auth0.com/docs/jwks) implementation. For simple key rotation using JWKS, try the [jwks-rsa-java](https://github.com/auth0/jwks-rsa-java) library.
 
 ```java
 final JwkStore jwkStore = new JwkStore("{JWKS_FILE_HOST}");
@@ -104,9 +108,6 @@ RSAKeyProvider keyProvider = new RSAKeyProvider() {
 Algorithm algorithm = Algorithm.RSA256(keyProvider);
 //Use the Algorithm to create and verify JWTs.
 ```
-
-> For simple key rotation using JWKs try the [jwks-rsa-java](https://github.com/auth0/jwks-rsa-java) library.
-
 
 ### Create and Sign a Token
 
@@ -187,7 +188,7 @@ If the token has an invalid signature or the Claim requirement is not met, a `JW
 The JWT token may include DateNumber fields that can be used to validate that:
 * The token was issued in a past date `"iat" < TODAY`
 * The token hasn't expired yet `"exp" > TODAY` and
-* The token can already be used. `"nbf" > TODAY`
+* The token can already be used. `"nbf" < TODAY`
 
 When verifying a token the time validation occurs automatically, resulting in a `JWTVerificationException` being throw when the values are invalid. If any of the previous fields are missing they won't be considered in this validation.
 

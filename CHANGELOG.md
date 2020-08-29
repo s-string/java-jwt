@@ -1,10 +1,123 @@
 # Change Log
 
+## [3.10.3](https://github.com/auth0/java-jwt/tree/3.10.3) (2020-04-24)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.10.2...3.10.3)
+
+**Fixed**
+- Fixed an NPE on null map and list claims [\#417](https://github.com/auth0/java-jwt/pull/417) ([Vorotyntsev](https://github.com/Vorotyntsev))
+
+## [3.10.2](https://github.com/auth0/java-jwt/tree/3.10.2) (2020-03-27)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.10.1...3.10.2)
+
+**Fixed**
+- JavaDoc fix [\#413](https://github.com/auth0/java-jwt/pull/413) ([jimmyjames](https://github.com/jimmyjames))
+- Check varargs null values in JWTVerifier [\#412](https://github.com/auth0/java-jwt/pull/412) ([jimmyjames](https://github.com/jimmyjames))
+
+## [3.10.1](https://github.com/auth0/java-jwt/tree/3.10.1) (2020-03-13)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.10.0...3.10.1)
+
+**Changed**
+- Update Jackson and Commons Codec dependencies [\#407](https://github.com/auth0/java-jwt/pull/407) ([jimmyjames](https://github.com/jimmyjames))
+
+**Security**
+- Update jackson-databind to 2.10.2 [\#399](https://github.com/auth0/java-jwt/pull/399) ([gexclaude](https://github.com/gexclaude))
+
+## [3.10.0](https://github.com/auth0/java-jwt/tree/3.10.0) (2020-02-14)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.9.0...3.10.0)
+**Closed issues**
+- NullPointerException when the claim doesn't exist in the token [\#384](https://github.com/auth0/java-jwt/issues/384)
+
+**Added**
+- Add Javadoc URL and badge to the README [\#382](https://github.com/auth0/java-jwt/pull/382) ([lbalmaceda](https://github.com/lbalmaceda))
+- Allow to customize the typ header claim [\#381](https://github.com/auth0/java-jwt/pull/381) ([lbalmaceda](https://github.com/lbalmaceda))
+- JWTCreator for basic types [\#282](https://github.com/auth0/java-jwt/pull/282) ([skjolber](https://github.com/skjolber))
+- Support verification of Long[] datatype like in JWTCreator [\#278](https://github.com/auth0/java-jwt/pull/278) ([skjolber](https://github.com/skjolber))
+
+**Changed**
+- Update to Gradle 6.1.1 [\#389](https://github.com/auth0/java-jwt/pull/389) ([jimmyjames](https://github.com/jimmyjames))
+
+**Fixed**
+- Handle missing expected array claim [\#393](https://github.com/auth0/java-jwt/pull/393) ([lbalmaceda](https://github.com/lbalmaceda))
+- Update tests to use valid Base64 URL-encoded tokens [\#386](https://github.com/auth0/java-jwt/pull/386) ([jimmyjames](https://github.com/jimmyjames))
+
+## [3.9.0](https://github.com/auth0/java-jwt/tree/3.9.0) (2020-01-02)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.8.3...3.9.0)
+
+**Added**
+- Support serialization of DecodedJWT [\#370](https://github.com/auth0/java-jwt/pull/370) ([jimmyjames](https://github.com/jimmyjames))
+
+**Fixed**
+- Fixing JwtCreator builder when setting headers as a map [\#320](https://github.com/auth0/java-jwt/pull/320) ([maxbalan](https://github.com/maxbalan))
+
+## [3.8.3](https://github.com/auth0/java-jwt/tree/3.8.3) (2019-09-25)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.8.2...3.8.3)
+
+**Security**
+- Fix: updated jackson-databind to 2.10.0.pr3 to block CVE [\#356](https://github.com/auth0/java-jwt/pull/356) ([danbrodsky](https://github.com/danbrodsky))
+
+## [3.8.2](https://github.com/auth0/java-jwt/tree/3.8.2) (2019-08-15)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.8.1...3.8.2)
+
+**Security**
+- Fix: updated jackson-databind to 2.9.9.3 to block CVE [\#347](https://github.com/auth0/java-jwt/pull/347) ([danbrodsky](https://github.com/danbrodsky))
+
+## [3.8.1](https://github.com/auth0/java-jwt/tree/3.8.1) (2019-05-22)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.8.0...3.8.1)
+
+**Security**
+- Bump dependencies and fix security issue [\#337](https://github.com/auth0/java-jwt/pull/337) ([lbalmaceda](https://github.com/lbalmaceda))
+
+## [3.8.0](https://github.com/auth0/java-jwt/tree/3.8.0) (2019-03-14)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.7.0...3.8.0)
+
+**Added**
+- Support multiple issuers #246 [\#288](https://github.com/auth0/java-jwt/pull/288) ([itdevelopmentapps](https://github.com/itdevelopmentapps))
+
+## [3.7.0](https://github.com/auth0/java-jwt/tree/3.7.0) (2019-01-29)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.6.0...3.7.0)
+
+**Added**
+- Performance improvements [\#255](https://github.com/auth0/java-jwt/pull/255) ([skjolber](https://github.com/skjolber))
+
+## [3.6.0](https://github.com/auth0/java-jwt/tree/3.6.0) (2019-01-24)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.5.0...3.6.0)
+
+**Added**
+- Allow to skip "issued at" validation [\#297](https://github.com/auth0/java-jwt/pull/297) ([complanboy2](https://github.com/complanboy2))
+
+## [3.5.0](https://github.com/auth0/java-jwt/tree/3.5.0) (2019-01-03)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.4.1...3.5.0)
+
+**Added**
+- Verify a DecodedJWT  [\#308](https://github.com/auth0/java-jwt/pull/308) ([martinoconnor](https://github.com/martinoconnor))
+
+**Changed**
+- Add an interface for JWTVerifier. [\#205](https://github.com/auth0/java-jwt/pull/205) ([jebbench](https://github.com/jebbench))
+
+**Fixed**
+- Remove unnecessary cast between long/double and floor call [\#296](https://github.com/auth0/java-jwt/pull/296) ([jhorstmann](https://github.com/jhorstmann))
+
+**Security**
+- Bump jackson-databind to patch security issues [\#309](https://github.com/auth0/java-jwt/pull/309) ([lbalmaceda](https://github.com/lbalmaceda))
+
+## [3.4.1](https://github.com/auth0/java-jwt/tree/3.4.1) (2018-10-24)
+[Full Changelog](https://github.com/auth0/java-jwt/compare/3.4.0...3.4.1)
+
+**Security**
+- Update jackson-databind dependency [\#292](https://github.com/auth0/java-jwt/pull/292) ([lbalmaceda](https://github.com/lbalmaceda))
+
 ## [3.4.0](https://github.com/auth0/java-jwt/tree/3.4.0) (2018-06-13)
 [Full Changelog](https://github.com/auth0/java-jwt/compare/3.3.0...3.4.0)
 
+**Breaking Changes**
+- Fix for [\#236](https://github.com/auth0/java-jwt/pull/236) - refactored HMACAlgorithm so that it doesn't throw an UnsupportedEncodingException [\#242](https://github.com/auth0/java-jwt/pull/242) ([obecker](https://github.com/obecker)). 
+
+Clients using the following methods may need to update their code to not catch an `UnsupportedEncodingException`:
+- `public static Algorithm HMAC384(String secret)`
+- `public static Algorithm HMAC256(String secret)`
+- `public static Algorithm HMAC512(String secret)`
+
 **Changed**
-- Fix for issue #236 - refactored HMACAlgorithm so that it doesn't throw an UnsupportedEncodingException [\#242](https://github.com/auth0/java-jwt/pull/242) ([obecker](https://github.com/obecker))
 - Throw JWTDecodeException when date claim format is invalid [\#241](https://github.com/auth0/java-jwt/pull/241) ([lbalmaceda](https://github.com/lbalmaceda))
 
 **Security**

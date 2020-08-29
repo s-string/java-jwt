@@ -6,13 +6,19 @@ import com.auth0.jwt.interfaces.JWTPartsParser;
 import com.auth0.jwt.interfaces.Payload;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.hibernate3.Hibernate3Module;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 
 import java.io.IOException;
 
 public class JWTParser implements JWTPartsParser {
-    private ObjectMapper mapper;
+    private final ObjectReader payloadReader;
+    private final ObjectReader headerReader;
 
     public JWTParser() {
         this(getDefaultObjectMapper());
@@ -20,23 +26,41 @@ public class JWTParser implements JWTPartsParser {
 
     JWTParser(ObjectMapper mapper) {
         addDeserializers(mapper);
-        this.mapper = mapper;
+        this.payloadReader = mapper.readerFor(Payload.class);
+        this.headerReader = mapper.readerFor(Header.class);
     }
 
     @Override
     public Payload parsePayload(String json) throws JWTDecodeException {
-        return convertFromJSON(json, Payload.class);
+        if (json == null) {
+            throw decodeException();
+        }
+
+        try {
+            return payloadReader.readValue(json);
+        } catch (IOException e) {
+            throw decodeException(json);
+        }
     }
 
     @Override
     public Header parseHeader(String json) throws JWTDecodeException {
-        return convertFromJSON(json, Header.class);
+        if (json == null) {
+            throw decodeException();
+        }
+
+        try {
+            return headerReader.readValue(json);
+        } catch (IOException e) {
+            throw decodeException(json);
+        }
     }
 
     private void addDeserializers(ObjectMapper mapper) {
         SimpleModule module = new SimpleModule();
-        module.addDeserializer(Payload.class, new PayloadDeserializer());
-        module.addDeserializer(Header.class, new HeaderDeserializer());
+        ObjectReader reader = mapper.reader();
+        module.addDeserializer(Payload.class, new PayloadDeserializer(reader));
+        module.addDeserializer(Header.class, new HeaderDeserializer(reader));
         mapper.registerModule(module);
     }
 
@@ -44,22 +68,18 @@ public class JWTParser implements JWTPartsParser {
         ObjectMapper mapper = new ObjectMapper();
         mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        mapper.registerModule(new Hibernate3Module())
+                .registerModule(new ParameterNamesModule())
+                .registerModule(new Jdk8Module())
+                .registerModule(new JavaTimeModule());
         return mapper;
     }
 
-    @SuppressWarnings("WeakerAccess")
-    <T> T convertFromJSON(String json, Class<T> tClazz) throws JWTDecodeException {
-        if (json == null) {
-            throw exceptionForInvalidJson(null);
-        }
-        try {
-            return mapper.readValue(json, tClazz);
-        } catch (IOException e) {
-            throw exceptionForInvalidJson(json);
-        }
+    private static JWTDecodeException decodeException() {
+        return decodeException(null);
     }
 
-    private JWTDecodeException exceptionForInvalidJson(String json) {
+    private static JWTDecodeException decodeException(String json) {
         return new JWTDecodeException(String.format("The string '%s' doesn't have a valid JSON format.", json));
     }
 }
