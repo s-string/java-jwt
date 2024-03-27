@@ -1,10 +1,20 @@
 
+buildscript {
+    ext {
+        awsAccessKeyId = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+        awsSecretAccessKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+    }
+}
+
 plugins {
     id 'java'
     id 'jacoco'
-    id 'com.auth0.gradle.oss-library.java'
+//    id 'com.auth0.gradle.oss-library.java'
     id 'checkstyle'
+    id "maven-publish"
 }
+
+version = '4.4.0'
 
 sourceSets {
     jmh {
@@ -31,28 +41,28 @@ tasks.named("checkstyleJmh").configure({
 
 logger.lifecycle("Using version ${version} for ${group}.${name}")
 
-oss {
-    name "java jwt"
-    repository "java-jwt"
-    organization "auth0"
-    description "Java implementation of JSON Web Token (JWT)"
-    baselineCompareVersion "4.1.0"
-
-    developers {
-        auth0 {
-            displayName = "Auth0"
-            email = "oss@auth0.com"
-        }
-        lbalmaceda {
-            displayName = "Luciano Balmaceda"
-            email = "luciano.balmaceda@auth0.com"
-        }
-        hzalaz {
-            displayName = "Hernan Zalazar"
-            email = "hernan@auth0.com"
-        }
-    }
-}
+//oss {
+//    name "java jwt"
+//    repository "java-jwt"
+//    organization "auth0"
+//    description "Java implementation of JSON Web Token (JWT)"
+//    baselineCompareVersion "4.1.0"
+//
+//    developers {
+//        auth0 {
+//            displayName = "Auth0"
+//            email = "oss@auth0.com"
+//        }
+//        lbalmaceda {
+//            displayName = "Luciano Balmaceda"
+//            email = "luciano.balmaceda@auth0.com"
+//        }
+//        hzalaz {
+//            displayName = "Hernan Zalazar"
+//            email = "hernan@auth0.com"
+//        }
+//    }
+//}
 
 java {
     toolchain {
@@ -190,3 +200,21 @@ tasks.register('jmhHelp', JavaExec) {
     args '-h'
 }
 
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = "com.superstring"
+            artifactId = "java-jwt-jsr318-jdk8"
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url = 's3://maven-repo.s-string.com/release'
+            credentials(AwsCredentials) {
+                accessKey = awsAccessKeyId
+                secretKey = awsSecretAccessKey
+            }
+        }
+    }
+}
